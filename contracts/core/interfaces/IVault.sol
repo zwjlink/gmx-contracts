@@ -5,8 +5,11 @@ pragma solidity 0.6.12;
 import "./IVaultUtils.sol";
 
 interface IVault {
+    //检查保险库是否已初始化
     function isInitialized() external view returns (bool);
+    //检查保险库是否启用了交换功能
     function isSwapEnabled() external view returns (bool);
+    //检查保险库是否启用了杠杆交易
     function isLeverageEnabled() external view returns (bool);
 
     function setVaultUtils(IVaultUtils _vaultUtils) external;

@@ -5,8 +5,10 @@ pragma solidity 0.6.12;
 contract UniPool {
     struct Slot0 {
         // the current price
+        //当前价格
         uint160 sqrtPriceX96;
         // the current tick
+        //当前tick
         int24 tick;
         // the most-recently updated index of the observations array
         uint16 observationIndex;
@@ -23,6 +25,7 @@ contract UniPool {
 
     Slot0 public slot0;
 
+    //返回0？
     function tickSpacing() external pure returns (int24) { return 0; }
 
     function observe(uint32[] calldata /* secondsAgos */)

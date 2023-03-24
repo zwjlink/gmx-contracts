@@ -17,7 +17,7 @@ contract Vault is ReentrancyGuard, IVault {
     using SafeERC20 for IERC20;
 
     struct Position {
-        uint256 size;
+        uint256 size; //
         uint256 collateral;
         uint256 averagePrice;
         uint256 entryFundingRate;
@@ -26,110 +26,110 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 lastIncreasedTime;
     }
 
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
-    uint256 public constant FUNDING_RATE_PRECISION = 1000000;
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000; //精度计算 100.00%
+    uint256 public constant FUNDING_RATE_PRECISION = 1000000; //资金费率精度
     uint256 public constant PRICE_PRECISION = 10 ** 30;
-    uint256 public constant MIN_LEVERAGE = 10000; // 1x
-    uint256 public constant USDG_DECIMALS = 18;
-    uint256 public constant MAX_FEE_BASIS_POINTS = 500; // 5%
+    uint256 public constant MIN_LEVERAGE = 10000; // 1x 最小杠杆
+    uint256 public constant USDG_DECIMALS = 18; // USDG精度
+    uint256 public constant MAX_FEE_BASIS_POINTS = 500; // 5% 最大费率
     uint256 public constant MAX_LIQUIDATION_FEE_USD = 100 * PRICE_PRECISION; // 100 USD
-    uint256 public constant MIN_FUNDING_RATE_INTERVAL = 1 hours;
+    uint256 public constant MIN_FUNDING_RATE_INTERVAL = 1 hours; //最小资金费率间隔
     uint256 public constant MAX_FUNDING_RATE_FACTOR = 10000; // 1%
 
-    bool public override isInitialized;
-    bool public override isSwapEnabled = true;
-    bool public override isLeverageEnabled = true;
+    bool public override isInitialized; //是否初始化
+    bool public override isSwapEnabled = true; //是否允许交易
+    bool public override isLeverageEnabled = true; //是否允许杠杆
 
     IVaultUtils public vaultUtils;
 
-    address public errorController;
+    address public errorController; //错误控制器
 
-    address public override router;
-    address public override priceFeed;
+    address public override router; //路由器
+    address public override priceFeed; //价格费率
 
-    address public override usdg;
-    address public override gov;
+    address public override usdg; //USDG
+    address public override gov; //治理地址
 
     uint256 public override whitelistedTokenCount;
 
-    uint256 public override maxLeverage = 50 * 10000; // 50x
+    uint256 public override maxLeverage = 50 * 10000; // 50x 最大杠杆
 
-    uint256 public override liquidationFeeUsd;
+    uint256 public override liquidationFeeUsd; //清算费用
     uint256 public override taxBasisPoints = 50; // 0.5%
-    uint256 public override stableTaxBasisPoints = 20; // 0.2%
-    uint256 public override mintBurnFeeBasisPoints = 30; // 0.3%
-    uint256 public override swapFeeBasisPoints = 30; // 0.3%
-    uint256 public override stableSwapFeeBasisPoints = 4; // 0.04%
-    uint256 public override marginFeeBasisPoints = 10; // 0.1%
+    uint256 public override stableTaxBasisPoints = 20; // 0.2% 稳定币税费
+    uint256 public override mintBurnFeeBasisPoints = 30; // 0.3% 挖矿费用
+    uint256 public override swapFeeBasisPoints = 30; // 0.3% 交易费用
+    uint256 public override stableSwapFeeBasisPoints = 4; // 0.04% 稳定币交易费用
+    uint256 public override marginFeeBasisPoints = 10; // 0.1% 杠杆费用
 
-    uint256 public override minProfitTime;
-    bool public override hasDynamicFees = false;
+    uint256 public override minProfitTime; //最小收益时间
+    bool public override hasDynamicFees = false; //是否有动态费用
 
-    uint256 public override fundingInterval = 8 hours;
+    uint256 public override fundingInterval = 8 hours; //资金费率间隔
     uint256 public override fundingRateFactor;
     uint256 public override stableFundingRateFactor;
     uint256 public override totalTokenWeights;
 
-    bool public includeAmmPrice = true;
-    bool public useSwapPricing = false;
+    bool public includeAmmPrice = true; //是否包含AMM价格
+    bool public useSwapPricing = false; //是否使用交易价格
 
-    bool public override inManagerMode = false;
-    bool public override inPrivateLiquidationMode = false;
+    bool public override inManagerMode = false; //是否在管理模式
+    bool public override inPrivateLiquidationMode = false; //是否在私有清算模式，白名单
 
-    uint256 public override maxGasPrice;
+    uint256 public override maxGasPrice; //最大gas价格
 
-    mapping (address => mapping (address => bool)) public override approvedRouters;
-    mapping (address => bool) public override isLiquidator;
-    mapping (address => bool) public override isManager;
+    mapping (address => mapping (address => bool)) public override approvedRouters; //允许的路由器
+    mapping (address => bool) public override isLiquidator; //是否是清算者
+    mapping (address => bool) public override isManager; //是否是管理者
 
-    address[] public override allWhitelistedTokens;
+    address[] public override allWhitelistedTokens; //所有白名单币种
 
-    mapping (address => bool) public override whitelistedTokens;
-    mapping (address => uint256) public override tokenDecimals;
-    mapping (address => uint256) public override minProfitBasisPoints;
-    mapping (address => bool) public override stableTokens;
-    mapping (address => bool) public override shortableTokens;
+    mapping (address => bool) public override whitelistedTokens; //白名单币种
+    mapping (address => uint256) public override tokenDecimals; //币种精度
+    mapping (address => uint256) public override minProfitBasisPoints; //最小收益率
+    mapping (address => bool) public override stableTokens; //稳定币
+    mapping (address => bool) public override shortableTokens; //是否可以做空
 
     // tokenBalances is used only to determine _transferIn values
-    mapping (address => uint256) public override tokenBalances;
+    mapping (address => uint256) public override tokenBalances; //币种余额
 
     // tokenWeights allows customisation of index composition
-    mapping (address => uint256) public override tokenWeights;
+    mapping (address => uint256) public override tokenWeights; //币种权重
 
     // usdgAmounts tracks the amount of USDG debt for each whitelisted token
-    mapping (address => uint256) public override usdgAmounts;
+    mapping (address => uint256) public override usdgAmounts; //USDG借贷
 
     // maxUsdgAmounts allows setting a max amount of USDG debt for a token
-    mapping (address => uint256) public override maxUsdgAmounts;
+    mapping (address => uint256) public override maxUsdgAmounts; //最大USDG借贷
 
     // poolAmounts tracks the number of received tokens that can be used for leverage
     // this is tracked separately from tokenBalances to exclude funds that are deposited as margin collateral
-    mapping (address => uint256) public override poolAmounts;
+    mapping (address => uint256) public override poolAmounts; //流动性挖矿
 
     // reservedAmounts tracks the number of tokens reserved for open leverage positions
-    mapping (address => uint256) public override reservedAmounts;
+    mapping (address => uint256) public override reservedAmounts; //保留的币种,尚未平仓杠杠头寸保留的代币数量
 
     // bufferAmounts allows specification of an amount to exclude from swaps
     // this can be used to ensure a certain amount of liquidity is available for leverage positions
-    mapping (address => uint256) public override bufferAmounts;
+    mapping (address => uint256) public override bufferAmounts; //要从交换中排除特定数量的代币
 
     // guaranteedUsd tracks the amount of USD that is "guaranteed" by opened leverage positions
     // this value is used to calculate the redemption values for selling of USDG
     // this is an estimated amount, it is possible for the actual guaranteed value to be lower
     // in the case of sudden price decreases, the guaranteed value should be corrected
     // after liquidations are carried out
-    mapping (address => uint256) public override guaranteedUsd;
+    mapping (address => uint256) public override guaranteedUsd; //保证金
 
     // cumulativeFundingRates tracks the funding rates based on utilization
-    mapping (address => uint256) public override cumulativeFundingRates;
+    mapping (address => uint256) public override cumulativeFundingRates; //根据利用率跟踪资金费率
     // lastFundingTimes tracks the last time funding was updated for a token
-    mapping (address => uint256) public override lastFundingTimes;
+    mapping (address => uint256) public override lastFundingTimes; //跟踪上次为令牌更新资金的时间
 
     // positions tracks all open positions
-    mapping (bytes32 => Position) public positions;
+    mapping (bytes32 => Position) public positions; //跟踪所有未平仓头寸
 
     // feeReserves tracks the amount of fees per token
-    mapping (address => uint256) public override feeReserves;
+    mapping (address => uint256) public override feeReserves; //跟踪每个令牌的费用金额
 
     mapping (address => uint256) public override globalShortSizes;
     mapping (address => uint256) public override globalShortAveragePrices;
@@ -217,8 +217,15 @@ contract Vault is ReentrancyGuard, IVault {
         gov = msg.sender;
     }
 
+    //初始化
+    //@@param _router 路由地址
+    //@@param _usdg USDG地址
+    //@@param _priceFeed 价格预言机地址
+    //@@param _liquidationFeeUsd 清算费用
+    //@@param _fundingRateFactor 资金费率系数
+    //@@param _stableFundingRateFactor 稳定资金费率系数
     function initialize(
-        address _router,
+        address _rout_routerer,
         address _usdg,
         address _priceFeed,
         uint256 _liquidationFeeUsd,

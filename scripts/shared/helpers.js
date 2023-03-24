@@ -42,6 +42,7 @@ const readCsv = async (file) => {
   return records
 }
 
+//获取chainID
 function getChainId(network) {
   if (network === "arbitrum") {
     return 42161
@@ -54,6 +55,7 @@ function getChainId(network) {
   throw new Error("Unsupported network")
 }
 
+//
 async function getFrameSigner() {
   try {
     const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
@@ -67,6 +69,7 @@ async function getFrameSigner() {
   }
 }
 
+//发送一个交易，在交易确认后，打印一个交易的hash值，2秒后返回交易对象
 async function sendTxn(txnPromise, label) {
   const txn = await txnPromise
   console.info(`Sending ${label}...`)
@@ -115,11 +118,13 @@ async function deployContract(name, args, label, options) {
   return contract
 }
 
+//异步函数，获取合约的实例
 async function contractAt(name, address, provider, options) {
   let contractFactory = await ethers.getContractFactory(name, options)
   if (provider) {
     contractFactory = contractFactory.connect(provider)
   }
+  //attach方法把实例绑定到指定地址上面，方便后续与合约交互
   return await contractFactory.attach(address)
 }
 
